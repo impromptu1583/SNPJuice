@@ -14,9 +14,9 @@ struct NetAddress {
     };
 
     std::string b64() const {
-        return base64::to_base64(std::string((char*)bytes, sizeof(NetAddress)));
+        return base64::to_base64(std::string((char*) bytes, sizeof(NetAddress)));
     }
-    
+
     bool operator==(const NetAddress&) const = default;
 };
 
@@ -120,19 +120,6 @@ struct game {
     u32     version_id;
 };
 
-struct GamePacket {
-    NetAddress sender{};
-    u32 size = 0;
-    u32 timestamp = 0;
-    char data[512]{};
-
-    GamePacket() = default;
-    GamePacket(const NetAddress& sender_id, const char* recv_data, const size_t size)
-        : sender{sender_id}, timestamp{GetTickCount()}, size{size} {
-        memcpy_s(data, sizeof(data), recv_data, size);
-    };
-};
-
 enum class CrownLinkMode {
     CLNK, // standard version
     DBCL  // double brain cells version
@@ -150,4 +137,95 @@ struct AdFile {
     game game_info{};
     char extra_bytes[32]{};
     CrownLinkMode crownlink_mode{};
+};
+
+enum class GamePacketType : u8 {
+    System,
+    Message,
+    Turn,
+    Types,
+};
+
+inline std::string to_string(GamePacketType value) {
+    switch (value) {
+        EnumStringCase(GamePacketType::System);
+        EnumStringCase(GamePacketType::Message);
+        EnumStringCase(GamePacketType::Turn);
+        EnumStringCase(GamePacketType::Types);
+    }
+    return std::to_string((u8) value);
+}
+
+enum class GamePacketSubType : u8 {
+    Unused,
+    InitialContact,
+    CircuitCheck,
+    CircuiteCheckResponse,
+    Ping,
+    PingResponse,
+    PlayerInfo,
+    PlayerJoin,
+    PlayerJoinAcceptStart,
+    PlayerJoinAcceptDone,
+    PlayerJoinReject,
+    PlayerLeave,
+    DropPlayer,
+    NewGameOwner,
+    Messages
+};
+
+inline std::string to_string(GamePacketSubType value) {
+    switch (value) {
+        EnumStringCase(GamePacketSubType::Unused);
+        EnumStringCase(GamePacketSubType::InitialContact);
+        EnumStringCase(GamePacketSubType::CircuitCheck);
+        EnumStringCase(GamePacketSubType::CircuiteCheckResponse);
+        EnumStringCase(GamePacketSubType::Ping);
+        EnumStringCase(GamePacketSubType::PingResponse);
+        EnumStringCase(GamePacketSubType::PlayerInfo);
+        EnumStringCase(GamePacketSubType::PlayerJoin);
+        EnumStringCase(GamePacketSubType::PlayerJoinAcceptStart);
+        EnumStringCase(GamePacketSubType::PlayerJoinAcceptDone);
+        EnumStringCase(GamePacketSubType::PlayerJoinReject);
+        EnumStringCase(GamePacketSubType::PlayerLeave);
+        EnumStringCase(GamePacketSubType::DropPlayer);
+        EnumStringCase(GamePacketSubType::NewGameOwner);
+        EnumStringCase(GamePacketSubType::Messages);
+    }
+    return std::to_string((u8) value);
+}
+
+enum class GamePacketFlags : u8 {
+    Acknowledgement = 0x01,
+    ResendRequest = 0x02,
+    Forwareded = 0x04
+};
+
+struct GamePacketHeader { // TODO: Constructor & to_string / print method
+    u32 checksum;
+    u32 size;
+    u32 sequence;
+    u32 ack_sequence;
+    GamePacketType type;
+    GamePacketSubType sub_type;
+    u8 player_id;
+    GamePacketFlags flags;
+};
+
+struct GamePacketData { // TODO: Constructor & to_string / print method
+    GamePacketHeader header;
+    char payload[500]{};
+};
+
+struct GamePacket {
+    NetAddress sender{};
+    u32 size = 0;
+    u32 timestamp = 0;
+    char data[512]{}; // TODO: replace with GamePackateData
+
+    GamePacket() = default;
+    GamePacket(const NetAddress& sender_id, const char* recv_data, const size_t size)
+        : sender{sender_id}, timestamp{GetTickCount()}, size{size} {
+        memcpy_s(data, sizeof(data), recv_data, size);
+    };
 };
